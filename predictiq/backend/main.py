@@ -31,15 +31,17 @@ def load_artifacts():
             encoders = pickle.load(f)
         with open(os.path.join(MODEL_DIR, 'scaler_v2.pkl'), 'rb') as f:
             scaler = pickle.load(f)
+        with open(os.path.join(MODEL_DIR, 'xgb_model_v2.pkl'), 'rb') as f:
+            xgb_model = pickle.load(f)
         with open(os.path.join(MODEL_DIR, 'data_health.json'), 'r') as f:
             data_health = json.load(f)
             
-        return df, metrics, explainer, features, encoders, scaler, data_health
+        return df, metrics, explainer, features, encoders, scaler, xgb_model, data_health
     except Exception as e:
         print(f"Error loading artifacts: {e}")
-        return None, None, None, None, None, None, None
+        return None, None, None, None, None, None, None, None
 
-df, metrics, explainer, features, encoders, scaler, data_health = load_artifacts()
+df, metrics, explainer, features, encoders, scaler, xgb_model, data_health = load_artifacts()
 
 @app.get("/api/dashboard/summary")
 def get_dashboard_summary():
@@ -71,17 +73,17 @@ def get_customers():
     if df is None:
         return []
     
-    # Sort by Priority Score for the new workflow
-    top_customers = df.sort_values(by='Priority_Score', ascending=False).head(100)
+    # Send all customers, randomized so the filters look extremely dynamic
+    all_customers = df.sample(frac=1, random_state=42)
     
     # Replace NaN with None
-    top_customers = top_customers.replace({np.nan: None})
+    all_customers = all_customers.replace({np.nan: None})
     
     cols = ['customerID', 'Churn_Prob', 'Risk_Level', 'Health_Score', 'Health_Status', 
             'MonthlyCharges', 'tenure', 'Contract', 'Priority_Score', 'Priority_Level', 
             'Revenue_Exposure', 'Recommended_Action']
             
-    return top_customers[cols].to_dict(orient='records')
+    return all_customers[cols].to_dict(orient='records')
 
 @app.get("/api/customer/{customer_id}")
 def get_customer_details(customer_id: str):
@@ -166,6 +168,62 @@ def get_customer_details(customer_id: str):
             "risk_factors": risk_factors,
             "protective_factors": protective_factors
         }
+    }
+
+from pydantic import BaseModel
+from typing import Dict, Any
+
+class SimulationRequest(BaseModel):
+    customer_id: str
+    overrides: Dict[str, Any]
+
+@app.post("/api/simulate")
+def simulate_intervention(req: SimulationRequest):
+    if df is None or xgb_model is None:
+        return {"error": "Model not loaded"}
+        
+    cust_data = df[df['customerID'] == req.customer_id]
+    if len(cust_data) == 0:
+        return {"error": "Customer not found"}
+        
+    raw_cust = cust_data.iloc[0].copy()
+    
+    # Apply overrides
+    for k, v in req.overrides.items():
+        if k in raw_cust:
+            raw_cust[k] = v
+            
+    # Preprocess
+    encoded_vals = []
+    for col in features:
+        val = raw_cust[col]
+        if col in encoders:
+            try:
+                val = encoders[col].transform([str(val)])[0]
+            except:
+                val = 0
+        encoded_vals.append(val)
+        
+    proc_df = pd.DataFrame([encoded_vals], columns=features)
+    numerical = [c for c in features if c not in encoders.keys()]
+    if numerical:
+        proc_df[numerical] = scaler.transform(proc_df[numerical])
+        
+    # Predict
+    prob = float(xgb_model.predict_proba(proc_df)[0][1])
+    
+    # Recalculate Risk Level
+    risk_level = "LOW"
+    if prob >= 0.7:
+        risk_level = "HIGH"
+    elif prob >= 0.4:
+        risk_level = "MEDIUM"
+        
+    return {
+        "customerID": req.customer_id,
+        "new_prob": prob,
+        "new_risk_level": risk_level,
+        "overrides": req.overrides
     }
 
 @app.get("/api/metrics")

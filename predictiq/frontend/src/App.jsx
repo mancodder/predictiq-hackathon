@@ -7,7 +7,7 @@ import {
 import { 
   Users, AlertTriangle, DollarSign, Activity, ChevronRight, 
   ShieldCheck, AlertCircle, FileWarning, Search, LayoutDashboard, Database, TrendingUp,
-  Moon, Sun, Bell, Settings, Filter, ShieldAlert, HeartPulse, BrainCircuit, Target
+  Moon, Sun, Bell, Settings, Filter, ShieldAlert, HeartPulse, BrainCircuit, Target, Sparkles, Mail, Send, Wand2, RefreshCw, Download, Cloud, Headphones
 } from 'lucide-react';
 
 const API_BASE = 'http://127.0.0.1:8000/api';
@@ -59,7 +59,11 @@ const mockTrendData = [
 
 
 
-function ExecutiveOverview({ summary, customers, isDark }) {
+function ExecutiveOverview({ summary, customers, isDark, onViewDatabase }) {
+  const topPriorityCustomers = React.useMemo(() => {
+    if (!customers) return [];
+    return [...customers].sort((a, b) => (b.Priority_Score || 0) - (a.Priority_Score || 0));
+  }, [customers]);
   const riskData = [
     { name: 'High Risk', value: summary?.high_risk || 0, color: RISK_COLORS.HIGH },
     { name: 'Medium Risk', value: summary?.medium_risk || 0, color: RISK_COLORS.MEDIUM },
@@ -90,6 +94,27 @@ function ExecutiveOverview({ summary, customers, isDark }) {
   const axisColor = isDark ? '#94a3b8' : '#64748b';
   const gridColor = isDark ? '#1e293b' : '#e2e8f0';
 
+  const handleExportCSV = () => {
+    if (!customers || customers.length === 0) return;
+    const headers = ['Account ID', 'Priority Score', 'Risk Prob', 'Health', 'Revenue Exposed', 'Recommended Action'];
+    const rows = customers.map(c => [
+      c.customerID, 
+      c.Priority_Score, 
+      formatPercentage(c.Churn_Prob), 
+      c.Health_Status, 
+      c.Revenue_Exposure, 
+      `"${c.Recommended_Action}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "PredictIQ_Priority_List.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -98,8 +123,8 @@ function ExecutiveOverview({ summary, customers, isDark }) {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">AI-driven retention intelligence and business exposure</p>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-500/20">
-            Export Report
+          <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-500/20">
+            <Download size={16} /> Export Priority List
           </button>
         </div>
       </div>
@@ -203,7 +228,7 @@ function ExecutiveOverview({ summary, customers, isDark }) {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-slate-900 dark:text-white">Top Priority Interventions (Ranked by Priority Score)</h3>
-            <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">View All in Database</button>
+            <button onClick={onViewDatabase} className="text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">View All in Database</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -218,7 +243,7 @@ function ExecutiveOverview({ summary, customers, isDark }) {
                 </tr>
               </thead>
               <tbody>
-                {customers.slice(0, 5).map(c => (
+                {topPriorityCustomers.slice(0, 5).map(c => (
                   <tr key={c.customerID} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-200">{c.customerID}</td>
                     <td className="px-4 py-3">
@@ -251,29 +276,48 @@ function ExecutiveOverview({ summary, customers, isDark }) {
   );
 }
 
-function CustomerExplorer({ customers, onSelectCustomer }) {
+function CustomerExplorer({ customers, onSelectCustomer, isCompactView }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('ALL');
 
-  const filtered = customers.filter(c => 
-    c.customerID.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = customers.filter(c => {
+    const matchesSearch = c.customerID.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    if (filterType === 'CRITICAL') return c.Priority_Level === 'CRITICAL';
+    if (filterType === 'HIGH_RISK') return c.Risk_Level === 'HIGH';
+    if (filterType === 'MTM') return c.Contract === 'Month-to-month';
+    return true;
+  });
+
+  // Sort critical accounts so the most urgent ones are at the top
+  if (filterType === 'CRITICAL') {
+    filtered.sort((a, b) => b.Priority_Score - a.Priority_Score);
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between mb-4">
         <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Customer Database</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Ranked automatically by Business Priority Score</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Showing {filtered.length} of {customers.length} accounts</p>
         </div>
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
-          <input 
-            type="text"
-            placeholder="Search Account ID..."
-            className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 shadow-sm transition-all"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+        <div className="flex gap-4 items-center">
+            <div className="hidden md:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <button onClick={() => setFilterType('ALL')} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${filterType === 'ALL' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>All</button>
+                <button onClick={() => setFilterType('CRITICAL')} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${filterType === 'CRITICAL' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Critical Priority</button>
+                <button onClick={() => setFilterType('HIGH_RISK')} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${filterType === 'HIGH_RISK' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>High Risk</button>
+                <button onClick={() => setFilterType('MTM')} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${filterType === 'MTM' ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Month-to-month</button>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+              <input 
+                type="text"
+                placeholder="Search Account ID..."
+                className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 shadow-sm transition-all"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
         </div>
       </div>
 
@@ -282,44 +326,44 @@ function CustomerExplorer({ customers, onSelectCustomer }) {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 font-medium">Account ID</th>
-                <th className="px-6 py-4 font-medium">Priority Score</th>
-                <th className="px-6 py-4 font-medium">Risk Score</th>
-                <th className="px-6 py-4 font-medium">Health</th>
-                <th className="px-6 py-4 font-medium">Revenue Exposed</th>
-                <th className="px-6 py-4 font-medium">Segment</th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Account ID</th>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Priority Score</th>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Risk Score</th>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Health</th>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Revenue Exposed</th>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Segment</th>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium text-right`}>Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              {filtered.map(c => (
+              {filtered.slice(0, 500).map(c => (
                 <tr key={c.customerID} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-200">{c.customerID}</td>
-                  <td className="px-6 py-4">
+                  <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'} font-medium text-slate-900 dark:text-slate-200`}>{c.customerID}</td>
+                  <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'}`}>
                      <span className={`px-2 py-1 rounded font-bold text-xs border ${
                         c.Priority_Level === 'CRITICAL' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                      }`}>
                         {c.Priority_Score} / 100
                      </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'}`}>
                     <span className="font-semibold" style={{ color: RISK_COLORS[c.Risk_Level] }}>{formatPercentage(c.Churn_Prob)}</span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'}`}>
                     <span className="flex items-center gap-1 text-xs font-medium" style={{ color: HEALTH_COLORS[c.Health_Status] }}>
                         <HeartPulse size={12} /> {c.Health_Status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">{formatCurrency(c.Revenue_Exposure)}</td>
-                  <td className="px-6 py-4">
+                  <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'} text-slate-600 dark:text-slate-400 font-medium`}>{formatCurrency(c.Revenue_Exposure)}</td>
+                  <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'}`}>
                     <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-semibold uppercase tracking-wider border border-slate-200 dark:border-slate-700">
                       {c.Contract}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'} text-right`}>
                     <button 
                       onClick={() => onSelectCustomer(c.customerID)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-md transition-opacity hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                      className={`inline-flex items-center gap-1 px-3 ${isCompactView ? 'py-1' : 'py-1.5'} text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-md transition-opacity hover:bg-blue-100 dark:hover:bg-blue-900/40`}
                     >
                       360 View <ChevronRight size={14} />
                     </button>
@@ -328,6 +372,11 @@ function CustomerExplorer({ customers, onSelectCustomer }) {
               ))}
             </tbody>
           </table>
+          {filtered.length > 500 && (
+            <div className="text-center py-3 text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800">
+              Showing top 500 of {filtered.length} results to maintain performance. Use search or filters to narrow down.
+            </div>
+          )}
         </div>
       </Card>
     </div>
@@ -337,6 +386,13 @@ function CustomerExplorer({ customers, onSelectCustomer }) {
 function CustomerDetail({ customerId, onBack }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const [isDrafting, setIsDrafting] = useState(false);
+  const [draftedText, setDraftedText] = useState('');
+  const [showEmail, setShowEmail] = useState(false);
+  
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulatedData, setSimulatedData] = useState(null);
 
   useEffect(() => {
     axios.get(`${API_BASE}/customer/${customerId}`).then(res => {
@@ -350,6 +406,109 @@ function CustomerDetail({ customerId, onBack }) {
 
   const { details, explanations } = data;
 
+  const handleGenerateEmail = () => {
+    setShowEmail(true);
+    setIsDrafting(true);
+    setDraftedText('');
+    
+    // Dynamically build the email based on ML SHAP reasons
+    const riskFactorText = explanations.risk_factors.slice(0, 2).map(f => f.feature.toLowerCase()).join(' and ');
+    
+    const fullEmail = `Subject: Exclusive Account Review & Upgrade Offer
+
+Hi there,
+
+I'm your dedicated Customer Success Manager. We noticed you've been with us for ${details.tenure} months, and we truly value your business! 
+
+Our system flagged that you might be experiencing friction regarding your ${riskFactorText}. We want to proactively resolve this for you.
+
+Based on your profile, we can offer you the following immediately:
+**${details.Recommended_Action}**
+
+Would you have 5 minutes this Thursday for a quick call to apply this to your account?
+
+Best regards,
+PredictIQ Retention Agent`;
+
+    let i = 0;
+    const interval = setInterval(() => {
+      setDraftedText(fullEmail.substring(0, i));
+      i += 3; // Typing speed
+      if (i > fullEmail.length) {
+        clearInterval(interval);
+        setDraftedText(fullEmail);
+        setIsDrafting(false);
+      }
+    }, 15);
+  };
+
+  const handleToggleSimulation = async () => {
+    if (simulatedData) {
+      setSimulatedData(null);
+      return;
+    }
+    
+    setIsSimulating(true);
+    try {
+      // Simulate upgrading a Month-to-month contract to a One year contract
+      const res = await axios.post(`${API_BASE}/simulate`, {
+        customer_id: details.customerID,
+        overrides: { Contract: "One year" }
+      });
+      setSimulatedData(res.data);
+    } catch (e) {
+      console.error(e);
+    }
+    setIsSimulating(false);
+  };
+
+  const handleDownloadBrief = () => {
+    const briefContent = `PREDICTIQ CUSTOMER BRIEF
+Account ID: ${details.customerID}
+Generated: ${new Date().toLocaleDateString()}
+----------------------------------------
+Priority Score: ${details.Priority_Score} / 100
+Churn Risk: ${formatPercentage(details.Churn_Prob)} (${details.Risk_Level})
+Health Status: ${details.Health_Status}
+Revenue Exposed: ${formatCurrency(details.Revenue_Exposure)}
+Current Contract: ${details.Contract}
+Lifetime Tenure: ${details.tenure} Months
+
+RECOMMENDED ACTION
+${details.Recommended_Action}
+
+PRIMARY RISK DRIVERS
+${explanations.risk_factors.map(f => `- ${f.reason}`).join('\n')}
+
+PROTECTIVE FACTORS
+${explanations.protective_factors.map(f => `- ${f.reason}`).join('\n')}
+`;
+    
+    const blob = new Blob([briefContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Account_Brief_${details.customerID}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSendOutlook = () => {
+    let subject = "Exclusive Account Review & Upgrade Offer";
+    let body = draftedText;
+    
+    if (draftedText.startsWith("Subject: ")) {
+      const parts = draftedText.split('\n\n');
+      subject = parts[0].replace("Subject: ", "");
+      body = parts.slice(1).join('\n\n');
+    }
+    
+    const mailtoLink = `mailto:customer_${details.customerID.toLowerCase()}@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+  };
+
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
       <div className="flex items-center justify-between mb-2">
@@ -362,19 +521,57 @@ function CustomerDetail({ customerId, onBack }) {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Operational view for Customer Success Managers</p>
           </div>
         </div>
+        <button onClick={handleDownloadBrief} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium transition-all shadow-sm">
+          <Download size={16} /> Download Brief
+        </button>
       </div>
 
       {/* AI Recommendation Banner */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 flex gap-4 items-start shadow-sm">
-        <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg text-blue-600 dark:text-blue-300">
-            <BrainCircuit size={24} />
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 flex flex-col md:flex-row gap-4 items-start md:items-center shadow-sm">
+        <div className="flex gap-4 items-start flex-1">
+            <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg text-blue-600 dark:text-blue-300">
+                <BrainCircuit size={24} />
+            </div>
+            <div>
+                <h3 className="text-sm font-bold text-blue-900 dark:text-blue-200 uppercase tracking-widest mb-1">Recommended Retention Action</h3>
+                <p className="text-lg font-medium text-slate-800 dark:text-slate-100">{details.Recommended_Action}</p>
+                <p className="text-xs text-blue-700/70 dark:text-blue-400/70 mt-1 italic">Generated from model risk drivers and business-priority rules.</p>
+            </div>
         </div>
-        <div className="flex-1">
-            <h3 className="text-sm font-bold text-blue-900 dark:text-blue-200 uppercase tracking-widest mb-1">Recommended Retention Action</h3>
-            <p className="text-lg font-medium text-slate-800 dark:text-slate-100">{details.Recommended_Action}</p>
-            <p className="text-xs text-blue-700/70 dark:text-blue-400/70 mt-1 italic">Generated from model risk drivers and business-priority rules.</p>
-        </div>
+        <button 
+          onClick={handleGenerateEmail}
+          className="mt-4 md:mt-0 whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-md"
+        >
+          <Sparkles size={16} className={isDrafting ? "animate-pulse" : ""} /> 
+          Draft Email with GenAI
+        </button>
       </div>
+
+      {/* Simulated GenAI Email Window */}
+      {showEmail && (
+        <div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+              <Mail size={16} className="text-blue-500" />
+              Generative AI Compose
+            </div>
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
+              <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+              <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            </div>
+          </div>
+          <div className="p-5 font-mono text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap min-h-[150px]">
+            {draftedText}
+            {isDrafting && <span className="inline-block w-2 h-4 ml-1 bg-blue-500 animate-pulse"></span>}
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+            <button onClick={handleSendOutlook} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold transition-colors disabled:opacity-50" disabled={isDrafting}>
+              <Send size={14} /> Send via Outlook
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Decision Audit Trail */}
       <div className="bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
@@ -403,16 +600,43 @@ function CustomerDetail({ customerId, onBack }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="col-span-1 flex flex-col relative overflow-hidden">
-          <div className={`absolute top-0 left-0 right-0 h-1`} style={{ backgroundColor: RISK_COLORS[details.Risk_Level] }}></div>
+        <Card className="col-span-1 flex flex-col relative overflow-hidden transition-colors duration-500" style={{ borderColor: simulatedData ? '#fcd34d' : '' }}>
+          <div className={`absolute top-0 left-0 right-0 h-1 transition-colors duration-500`} style={{ backgroundColor: simulatedData ? RISK_COLORS[simulatedData.new_risk_level] : RISK_COLORS[details.Risk_Level] }}></div>
           
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2">Predicted Churn Risk</h3>
-          <div className="mt-4 text-5xl font-extrabold text-slate-900 dark:text-white flex items-baseline gap-2">
-            {formatPercentage(details.Churn_Prob)}
-            <span className="text-sm font-medium uppercase tracking-wide" style={{ color: RISK_COLORS[details.Risk_Level] }}>{details.Risk_Level}</span>
+          <div className="flex justify-between items-start mt-2">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Predicted Churn Risk</h3>
+              <button 
+                onClick={handleToggleSimulation}
+                disabled={isSimulating}
+                className={`text-[10px] px-2 py-1.5 rounded-md font-bold transition-all flex items-center gap-1 shadow-sm ${simulatedData ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border border-amber-300 dark:border-amber-700/50' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'}`}
+              >
+                {isSimulating ? <RefreshCw size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                {simulatedData ? 'Clear Sandbox' : 'Sandbox: 1 Yr Upgrade'}
+              </button>
+          </div>
+          
+          <div className="mt-4 text-5xl font-extrabold flex items-baseline gap-2 transition-all">
+            {simulatedData ? (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 flex items-baseline gap-2">
+                    <span className="text-slate-300 dark:text-slate-600 line-through text-2xl mr-1">{formatPercentage(details.Churn_Prob)}</span>
+                    <span className="text-emerald-500">{formatPercentage(simulatedData.new_prob)}</span>
+                    <span className="text-sm font-medium uppercase tracking-wide text-emerald-500">{simulatedData.new_risk_level}</span>
+                </div>
+            ) : (
+                <div className="animate-in fade-in duration-300 flex items-baseline gap-2 text-slate-900 dark:text-white">
+                    {formatPercentage(details.Churn_Prob)}
+                    <span className="text-sm font-medium uppercase tracking-wide" style={{ color: RISK_COLORS[details.Risk_Level] }}>{details.Risk_Level}</span>
+                </div>
+            )}
           </div>
           
           <div className="mt-8 flex flex-col gap-4 flex-1">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800/50">
+              <span className="text-sm text-slate-500 dark:text-slate-400">Current Contract</span>
+              <span className={`font-bold text-xs uppercase px-2 py-1 rounded transition-colors ${simulatedData ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+                {simulatedData ? 'One year (Simulated)' : details.Contract}
+              </span>
+            </div>
             <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800/50">
               <span className="text-sm text-slate-500 dark:text-slate-400">Business Priority Score</span>
               <span className="font-bold text-slate-900 dark:text-slate-200">{details.Priority_Score} / 100</span>
@@ -485,6 +709,33 @@ function CustomerDetail({ customerId, onBack }) {
               </div>
             </div>
           </div>
+        </Card>
+      </div>
+
+      {/* Customer Journey Timeline */}
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        <Card>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-6">Recent Customer Interactions</h3>
+            <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 space-y-8">
+                <div className="relative pl-6">
+                    <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-red-100 dark:bg-red-900/30 border-2 border-red-500 z-10"></span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-mono">2 Days Ago</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-200">Logged Support Ticket: "Billing Discrepancy"</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Sentiment: Negative. Issue escalated to tier 2 support and resolved.</p>
+                </div>
+                <div className="relative pl-6">
+                    <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-500 z-10"></span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-mono">14 Days Ago</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-200">Feature Usage Drop Detected</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">System detected 40% reduction in platform logins vs 30-day average. Triggered automated health check.</p>
+                </div>
+                <div className="relative pl-6">
+                    <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border-2 border-emerald-500 z-10"></span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-mono">{details.tenure} Months Ago</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-200">Account Onboarded</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Signed up with a {details.Contract} contract.</p>
+                </div>
+            </div>
         </Card>
       </div>
     </div>
@@ -650,6 +901,46 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [monitoring, setMonitoring] = useState(null);
   
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncComplete, setSyncComplete] = useState(false);
+
+  const [isCompactView, setIsCompactView] = useState(false);
+  const [isRetraining, setIsRetraining] = useState(false);
+  const [retrainComplete, setRetrainComplete] = useState(false);
+
+  const handleRetrain = () => {
+    setIsRetraining(true);
+    setRetrainComplete(false);
+    setTimeout(() => {
+      setIsRetraining(false);
+      setRetrainComplete(true);
+      setTimeout(() => setRetrainComplete(false), 3000);
+    }, 2500);
+  };
+
+  const handleSync = () => {
+    setIsSyncing(true);
+    setSyncComplete(false);
+    
+    // Simulate network sync with Salesforce/Zendesk
+    setTimeout(() => {
+      setIsSyncing(false);
+      setSyncComplete(true);
+      
+      // Re-fetch data to simulate live updates
+      axios.get(`${API_BASE}/dashboard/summary`).then(res => setSummary(res.data)).catch(console.error);
+      axios.get(`${API_BASE}/customers`).then(res => setCustomers(res.data)).catch(console.error);
+      
+      // Reset button state after 3 seconds
+      setTimeout(() => {
+        setSyncComplete(false);
+      }, 3000);
+    }, 1500);
+  };
+  
   // Theme State
   const [isDark, setIsDark] = useState(true);
 
@@ -721,7 +1012,7 @@ export default function App() {
           </nav>
         </div>
 
-        <div className="p-4 pt-2 flex-1">
+        <div className="p-4 pt-2">
           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mb-2 mt-4">Intelligence</p>
           <nav className="space-y-1">
             <button 
@@ -747,6 +1038,51 @@ export default function App() {
             </button>
           </nav>
         </div>
+
+        <div className="p-4 pt-0 flex-1">
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mb-2 mt-2">Integrations</p>
+          <nav className="space-y-1">
+            <button className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-default">
+              <span className="flex items-center gap-3"><Cloud size={16} /> Salesforce</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-slate-700/80 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">Syncing</span>
+            </button>
+            <button className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-default">
+              <span className="flex items-center gap-3"><Headphones size={16} /> Zendesk</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded">Active</span>
+            </button>
+            <button 
+              onClick={handleSync}
+              disabled={isSyncing}
+              className={`w-full flex items-center justify-center gap-2 mt-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${isSyncing ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'} ${
+                syncComplete 
+                  ? 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/20 dark:border-emerald-800/30'
+                  : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-800/30'
+              }`}
+            >
+              {isSyncing ? (
+                <><RefreshCw size={14} className="animate-spin" /> Syncing...</>
+              ) : syncComplete ? (
+                <><ShieldCheck size={14} /> Synced!</>
+              ) : (
+                <><RefreshCw size={14} /> Sync Now</>
+              )}
+            </button>
+          </nav>
+        </div>
+
+        <div className="p-4 mx-4 mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-full blur-md"></div>
+          <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-blue-600 dark:text-blue-400" /> Copilot Active
+          </p>
+          <p className="text-[10px] text-blue-600/80 dark:text-blue-400/80 leading-relaxed mb-3">
+            Real-time churn simulation is running on 7,043 accounts.
+          </p>
+          <div className="w-full bg-blue-200 dark:bg-blue-900/40 rounded-full h-1.5 mb-1">
+            <div className="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full" style={{width: '100%'}}></div>
+          </div>
+          <p className="text-[9px] text-blue-500 dark:text-blue-400 text-right font-mono">100% Synced</p>
+        </div>
         
         <div className="p-4 border-t border-slate-200 dark:border-slate-800/80">
           <button 
@@ -768,7 +1104,7 @@ export default function App() {
             </div>
             <div className="text-sm">
               <p className="text-slate-900 dark:text-white font-medium">Manthan Handa</p>
-              <p className="text-xs text-slate-500 dark:text-slate-500">Microsoft Hackathon</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500">VP of Customer Success</p>
             </div>
           </div>
         </div>
@@ -787,21 +1123,97 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors relative">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0a0f1c]"></span>
-            </button>
-            <button className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
-              <Settings size={18} />
-            </button>
+            <div className="relative">
+                <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors relative hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                  <Bell size={18} />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0a0f1c] animate-pulse"></span>
+                </button>
+                
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 animate-in slide-in-from-top-2">
+                      <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white">Live Alerts</h4>
+                          <span className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">Mark all read</span>
+                      </div>
+                      <div className="flex flex-col max-h-[300px] overflow-y-auto">
+                          <div className="p-3 border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors">
+                              <p className="text-xs font-bold text-red-500 mb-1 flex items-center gap-1"><AlertTriangle size={12}/> Risk Spike</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300">Account 3389-YGYAI churn probability jumped +14% due to Support Ticket #892.</p>
+                              <p className="text-[10px] text-slate-400 mt-1 font-mono">Just now</p>
+                          </div>
+                          <div className="p-3 border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors">
+                              <p className="text-xs font-bold text-amber-500 mb-1 flex items-center gap-1"><AlertCircle size={12}/> Contract Expiring</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300">3 High-Value accounts have contracts expiring in 30 days. Recommend outreach.</p>
+                              <p className="text-[10px] text-slate-400 mt-1 font-mono">1 hour ago</p>
+                          </div>
+                          <div className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors">
+                              <p className="text-xs font-bold text-emerald-500 mb-1 flex items-center gap-1"><ShieldCheck size={12}/> Retention Success</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300">Account 8734-ABC upgraded to Annual Contract successfully!</p>
+                              <p className="text-[10px] text-slate-400 mt-1 font-mono">3 hours ago</p>
+                          </div>
+                      </div>
+                  </div>
+                )}
+            </div>
+            <div className="relative">
+              <button 
+                onClick={() => setShowSettings(!showSettings)} 
+                className={`p-2 transition-colors rounded-full ${showSettings ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                <Settings size={18} />
+              </button>
+              
+              {showSettings && (
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 animate-in slide-in-from-top-2 p-2">
+                    <div className="p-2 border-b border-slate-200 dark:border-slate-700 mb-2 flex justify-between items-center">
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Quick Settings</h4>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded cursor-pointer transition-colors">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Auto-assign High Risk</span>
+                        <input type="checkbox" defaultChecked className="rounded border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" />
+                      </label>
+                      <label className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded cursor-pointer transition-colors">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Email Alerts (Daily)</span>
+                        <input type="checkbox" defaultChecked className="rounded border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" />
+                      </label>
+                      <label className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded cursor-pointer transition-colors">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Compact View</span>
+                        <input type="checkbox" checked={isCompactView} onChange={(e) => setIsCompactView(e.target.checked)} className="rounded border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" />
+                      </label>
+                    </div>
+                    
+                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <button 
+                        onClick={handleRetrain}
+                        disabled={isRetraining}
+                        className={`w-full text-left p-2 text-xs font-medium rounded transition-colors flex items-center gap-2 ${
+                            retrainComplete 
+                                ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                                : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                        }`}
+                      >
+                        {isRetraining ? (
+                            <><RefreshCw size={12} className="animate-spin" /> Retraining Models...</>
+                        ) : retrainComplete ? (
+                            <><ShieldCheck size={12} /> Models Retrained Successfully</>
+                        ) : (
+                            <><RefreshCw size={12} /> Force Retrain Models</>
+                        )}
+                      </button>
+                    </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Scrollable Content */}
         <main className="flex-1 overflow-auto p-8 relative">
           <div className="max-w-[1400px] mx-auto w-full">
-            {currentView === 'overview' && <ExecutiveOverview summary={summary} customers={customers} isDark={isDark} />}
-            {currentView === 'explorer' && <CustomerExplorer customers={customers} onSelectCustomer={selectCustomer} />}
+            {currentView === 'overview' && <ExecutiveOverview summary={summary} customers={customers} isDark={isDark} onViewDatabase={() => navigate('explorer')} />}
+            {currentView === 'explorer' && <CustomerExplorer customers={customers} onSelectCustomer={selectCustomer} isCompactView={isCompactView} />}
             {currentView === 'detail' && selectedCustomer && <CustomerDetail customerId={selectedCustomer} onBack={() => navigate('explorer')} />}
             {currentView === 'performance' && <ModelPerformance metrics={metrics} isDark={isDark} />}
             {currentView === 'monitoring' && <ModelMonitoring monitoring={monitoring} />}
