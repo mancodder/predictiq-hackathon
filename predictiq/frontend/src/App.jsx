@@ -7,8 +7,9 @@ import {
 import { 
   Users, AlertTriangle, DollarSign, Activity, ChevronRight, 
   ShieldCheck, AlertCircle, FileWarning, Search, LayoutDashboard, Database, TrendingUp,
-  Moon, Sun, Bell, Settings, Filter, ShieldAlert, HeartPulse, BrainCircuit, Target, Sparkles, Mail, Send, Wand2, RefreshCw, Download, Cloud, Headphones
+  Moon, Sun, Bell, Settings, Filter, ShieldAlert, HeartPulse, BrainCircuit, Target, Sparkles, Mail, Send, Wand2, RefreshCw, Download, Cloud, Headphones, MessageSquare
 } from 'lucide-react';
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 
 const API_BASE = 'http://127.0.0.1:8000/api';
 
@@ -224,6 +225,14 @@ function ExecutiveOverview({ summary, customers, isDark, onViewDatabase }) {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 gap-6 mb-6 mt-6">
+        <Card>
+          <h3 className="text-base font-semibold mb-1 text-slate-900 dark:text-white">Global Risk Distribution Heatmap</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Real-time geographical tracking of high-priority interventions.</p>
+          <LiveGeographicMap />
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 gap-6">
         <Card>
           <div className="flex items-center justify-between mb-4">
@@ -393,6 +402,46 @@ function CustomerDetail({ customerId, onBack }) {
   
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulatedData, setSimulatedData] = useState(null);
+
+  const [newNote, setNewNote] = useState('');
+  const [teamNotes, setTeamNotes] = useState([
+    {
+      id: 1,
+      initials: 'SJ',
+      name: 'Sarah Jenkins',
+      role: 'Sales',
+      time: '2 hours ago',
+      text: 'Customer reached out about pricing for Q4. Given the risk score, I think we should proactively offer the 15% annual upgrade discount.',
+      colorClass: 'bg-blue-100 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+    },
+    {
+      id: 2,
+      initials: 'MR',
+      name: 'Mike Ross',
+      role: 'Support',
+      time: '1 day ago',
+      text: 'Resolved ticket #1042 regarding fiber optic downtime. Customer seemed frustrated but thanked us for the quick response.',
+      colorClass: 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+    }
+  ]);
+
+  const handleAddNote = (e) => {
+    e.preventDefault();
+    if (!newNote.trim()) return;
+    
+    const note = {
+      id: Date.now(),
+      initials: 'MH',
+      name: 'Manthan Handa',
+      role: 'VP of CS',
+      time: 'Just now',
+      text: newNote,
+      colorClass: 'bg-purple-100 dark:bg-purple-900/50 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300'
+    };
+    
+    setTeamNotes([note, ...teamNotes]);
+    setNewNote('');
+  };
 
   useEffect(() => {
     axios.get(`${API_BASE}/customer/${customerId}`).then(res => {
@@ -712,8 +761,8 @@ ${explanations.protective_factors.map(f => `- ${f.reason}`).join('\n')}
         </Card>
       </div>
 
-      {/* Customer Journey Timeline */}
-      <div className="grid grid-cols-1 gap-6 mb-6">
+      {/* Customer Journey Timeline and Collaboration */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card>
             <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-6">Recent Customer Interactions</h3>
             <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 space-y-8">
@@ -735,6 +784,44 @@ ${explanations.protective_factors.map(f => `- ${f.reason}`).join('\n')}
                     <p className="text-sm font-bold text-slate-900 dark:text-slate-200">Account Onboarded</p>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Signed up with a {details.Contract} contract.</p>
                 </div>
+            </div>
+        </Card>
+        
+        <Card>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Team Notes & Collaboration</h3>
+              <div className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase"><Cloud size={12}/> Synced to CRM</div>
+            </div>
+            
+            <div className="flex flex-col h-[280px]">
+              <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-4">
+                {teamNotes.map(note => (
+                  <div key={note.id} className="flex gap-3 text-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold flex-shrink-0 shadow-sm ${note.colorClass}`}>
+                      {note.initials}
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg rounded-tl-none border border-slate-200 dark:border-slate-700 flex-1 shadow-sm">
+                      <p className="font-semibold text-slate-900 dark:text-slate-200 text-xs mb-1">
+                        {note.name} <span className="text-slate-400 font-normal ml-1">· {note.role} · {note.time}</span>
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">{note.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <form onSubmit={handleAddNote} className="mt-auto relative group">
+                <input 
+                  type="text" 
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Add a note (Syncs with Salesforce)..." 
+                  className="w-full text-sm bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-slate-700 rounded-lg pl-4 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-slate-900 dark:text-slate-200 placeholder-slate-400 transition-all shadow-sm"
+                />
+                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white rounded-md p-1.5 transition-colors cursor-pointer">
+                  <Send size={14} />
+                </button>
+              </form>
             </div>
         </Card>
       </div>
@@ -1220,6 +1307,178 @@ export default function App() {
           </div>
         </main>
       </div>
+      <CopilotChat />
+    </div>
+  );
+}
+
+function LiveGeographicMap() {
+  const [locations, setLocations] = useState([
+    { id: 'sf', name: 'San Francisco', coordinates: [-122.4194, 37.7749], accounts: 124, mrr: 45000, color: '#ef4444' },
+    { id: 'ny', name: 'New York', coordinates: [-74.006, 40.7128], accounts: 289, mrr: 112000, color: '#ef4444' },
+    { id: 'lon', name: 'London', coordinates: [-0.1276, 51.5074], accounts: 84, mrr: 34000, color: '#eab308' },
+    { id: 'tok', name: 'Tokyo', coordinates: [139.6917, 35.6895], accounts: 156, mrr: 67000, color: '#ef4444' },
+    { id: 'del', name: 'New Delhi', coordinates: [77.2090, 28.6139], accounts: 62, mrr: 18000, color: '#eab308' },
+  ]);
+  
+  const [liveEvents, setLiveEvents] = useState([
+    { id: 1, time: new Date().toLocaleTimeString([], { hour12: false }), text: 'System connected to global stream' }
+  ]);
+
+  useEffect(() => {
+    // Simulate real-time data fluctuations
+    const interval = setInterval(() => {
+      // Randomly pick a location to update
+      const locIndex = Math.floor(Math.random() * 5);
+      const locs = ['San Francisco', 'New York', 'London', 'Tokyo', 'New Delhi'];
+      const actions = ['Risk score elevated', 'Churn alert triggered', 'New critical account detected', 'MRR exposure increased'];
+      
+      setLocations(prev => {
+        const next = [...prev];
+        const change = Math.floor(Math.random() * 5) - 1; // -1 to +3
+        if (next[locIndex].accounts + change > 0) {
+          next[locIndex].accounts += change;
+          next[locIndex].mrr += (change * 450);
+        }
+        return next;
+      });
+
+      // Add live event
+      setLiveEvents(prev => {
+        const newEvent = {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString([], { hour12: false }),
+          text: `${actions[Math.floor(Math.random() * actions.length)]} in ${locs[locIndex]}`
+        };
+        return [newEvent, ...prev].slice(0, 4); // keep last 4
+      });
+      
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="h-[400px] w-full bg-[#0a0f1c] rounded-xl overflow-hidden relative border border-slate-800">
+      {/* Live Indicator */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-slate-900/80 backdrop-blur-sm border border-slate-700 px-3 py-1.5 rounded-full shadow-lg">
+        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+        <span className="text-xs font-semibold text-slate-200 tracking-wider">LIVE FEED</span>
+      </div>
+
+      {/* Live Event Log */}
+      <div className="absolute bottom-4 left-4 z-10 w-64 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-2xl">
+        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1"><Activity size={12}/> Incoming Alerts</h4>
+        <div className="flex flex-col gap-2">
+          {liveEvents.map((ev, i) => (
+            <div key={ev.id} className="text-xs animate-in slide-in-from-left-4 fade-in duration-300">
+              <span className="text-blue-400 font-mono text-[10px] mr-1">[{ev.time}]</span>
+              <span className={i === 0 ? "text-slate-100" : "text-slate-500"}>{ev.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <ComposableMap projectionConfig={{ scale: 140 }} className="w-full h-full bg-[#0a0f1c]">
+        <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
+          {({ geographies }) =>
+            geographies.map((geo) => (
+              <Geography
+                key={geo.rsmKey}
+                geography={geo}
+                fill="#1e293b"
+                stroke="#334155"
+                strokeWidth={0.5}
+                style={{
+                  default: { outline: "none" },
+                  hover: { fill: "#475569", outline: "none" },
+                  pressed: { outline: "none" },
+                }}
+              />
+            ))
+          }
+        </Geographies>
+        
+        {locations.map((loc) => (
+          <Marker key={loc.id} coordinates={loc.coordinates}>
+            <circle r={8} fill={loc.color} className="animate-ping opacity-75" />
+            <circle r={4} fill={loc.color} />
+            <g transform="translate(0, -15)">
+              <rect x="-40" y="-14" width="80" height="18" fill="rgba(15, 23, 42, 0.9)" rx="4" stroke={loc.color} strokeWidth="1"/>
+              <text textAnchor="middle" y="-2" style={{ fill: "#fff", fontSize: "9px", fontWeight: "bold" }}>
+                {loc.name}: {loc.accounts}
+              </text>
+            </g>
+          </Marker>
+        ))}
+      </ComposableMap>
+    </div>
+  );
+}
+
+function CopilotChat() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { sender: 'bot', text: "Hi Manthan, I'm PredictIQ Copilot. How can I help you analyze our customer data today?" }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+
+  const handleQuery = (query, response) => {
+    setMessages(prev => [...prev, { sender: 'user', text: query }]);
+    setIsTyping(true);
+    setTimeout(() => {
+      setMessages(prev => [...prev, { sender: 'bot', text: response }]);
+      setIsTyping(false);
+    }, 1500);
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+      {isOpen && (
+        <div className="mb-4 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom-right">
+          <div className="bg-blue-600 p-3 text-white flex justify-between items-center">
+            <span className="font-bold flex items-center gap-2 text-sm"><Sparkles size={14} /> PredictIQ Copilot</span>
+            <button onClick={() => setIsOpen(false)} className="hover:bg-blue-700 p-1 rounded transition-colors cursor-pointer"><ChevronRight size={14} className="rotate-90" /></button>
+          </div>
+          <div className="h-64 p-4 overflow-y-auto flex flex-col gap-3 bg-slate-50 dark:bg-slate-900/50 text-sm">
+            {messages.map((m, i) => (
+              <div key={i} className={`max-w-[85%] p-2.5 rounded-lg text-[13px] leading-relaxed shadow-sm ${m.sender === 'user' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 self-end rounded-br-none border border-blue-200 dark:border-blue-800/30' : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 self-start border border-slate-200 dark:border-slate-600 rounded-bl-none'}`}>
+                {m.text}
+              </div>
+            ))}
+            {isTyping && (
+              <div className="bg-white dark:bg-slate-700 text-slate-500 self-start p-2.5 border border-slate-200 dark:border-slate-600 rounded-lg rounded-bl-none shadow-sm flex gap-1 items-center h-9">
+                <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+              </div>
+            )}
+          </div>
+          <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 font-bold uppercase tracking-wider">Suggested Queries</p>
+            <div className="flex flex-col gap-1.5">
+              <button 
+                onClick={() => handleQuery("Which segment is highest risk?", "Based on the latest SHAP analysis, the Month-to-month segment using Fiber Optic internet has a 3x higher churn risk than the baseline.")}
+                className="text-xs text-left p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors cursor-pointer border border-slate-200 dark:border-slate-600"
+              >
+                Which segment is highest risk?
+              </button>
+              <button 
+                onClick={() => handleQuery("Are there data anomalies?", "I have monitored the incoming Salesforce data pipeline. There is no significant data drift, and data health is at 98%.")}
+                className="text-xs text-left p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors cursor-pointer border border-slate-200 dark:border-slate-600"
+              >
+                Are there data anomalies?
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 cursor-pointer ring-4 ring-blue-600/20 dark:ring-blue-500/20"
+      >
+        <MessageSquare size={24} />
+      </button>
     </div>
   );
 }
