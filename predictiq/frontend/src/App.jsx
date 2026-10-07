@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
@@ -7,7 +7,8 @@ import {
 import { 
   Users, AlertTriangle, DollarSign, Activity, ChevronRight, 
   ShieldCheck, AlertCircle, FileWarning, Search, LayoutDashboard, Database, TrendingUp,
-  Moon, Sun, Bell, Settings, Filter, ShieldAlert, HeartPulse, BrainCircuit, Target, Sparkles, Mail, Send, Wand2, RefreshCw, Download, Cloud, Headphones, MessageSquare
+  Moon, Sun, Bell, Settings, Filter, ShieldAlert, HeartPulse, BrainCircuit, Target, Sparkles, Mail, Send, Wand2, RefreshCw, Download, Cloud, Headphones, MessageSquare,
+  Link, Server, Webhook, Layers, GitCommit, Play, ArrowRight, Plus, Check, Zap, CheckCircle, FileText, X, Printer
 } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 
@@ -61,6 +62,17 @@ const mockTrendData = [
 
 
 function ExecutiveOverview({ summary, customers, isDark, onViewDatabase }) {
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportReady, setReportReady] = useState(false);
+
+  const handleGenerateReport = () => {
+    setIsGeneratingReport(true);
+    setReportReady(false);
+    setTimeout(() => {
+      setReportReady(true);
+    }, 2500);
+  };
+
   const topPriorityCustomers = React.useMemo(() => {
     if (!customers) return [];
     return [...customers].sort((a, b) => (b.Priority_Score || 0) - (a.Priority_Score || 0));
@@ -124,11 +136,98 @@ function ExecutiveOverview({ summary, customers, isDark, onViewDatabase }) {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">AI-driven retention intelligence and business exposure</p>
         </div>
         <div className="flex gap-3">
+          <button onClick={handleGenerateReport} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-purple-500/20">
+            <Sparkles size={16} /> GenAI Board Report
+          </button>
           <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-500/20">
             <Download size={16} /> Export Priority List
           </button>
         </div>
       </div>
+
+      {isGeneratingReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-[#0f172a] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-[#1e293b]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <FileText size={18} />
+                </div>
+                <h3 className="font-bold text-slate-900 dark:text-white">Weekly Executive Board Report</h3>
+              </div>
+              <button onClick={() => { setIsGeneratingReport(false); setReportReady(false); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-8 relative">
+              {!reportReady ? (
+                <div className="flex flex-col items-center justify-center h-64 space-y-6">
+                  <div className="relative w-24 h-24">
+                    <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-900/50 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                      <BrainCircuit size={32} />
+                    </div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white animate-pulse">Synthesizing 7,043 Accounts...</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+                      PredictIQ is analyzing SHAP values, risk trajectories, and revenue exposure to generate a comprehensive markdown report.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto animate-in slide-in-from-bottom-4 duration-500 text-slate-700 dark:text-slate-300">
+                  <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Executive Churn & Retention Summary</h1>
+                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-8">Generated by PredictIQ Copilot • {new Date().toLocaleDateString()}</p>
+                  
+                  <hr className="border-slate-200 dark:border-slate-800 my-8" />
+
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 mt-8">Executive Summary</h2>
+                  <p className="mb-4 leading-relaxed">
+                    Over the last 7 days, our machine learning pipeline has identified <strong className="text-slate-900 dark:text-white font-semibold">{summary?.high_risk?.toLocaleString() || 412} high-risk accounts</strong> out of the total {summary?.total_customers?.toLocaleString() || '7,043'} customer base. The total MRR exposure from these accounts is currently estimated at <strong className="text-slate-900 dark:text-white font-semibold">₹{((summary?.revenue_at_risk || 150000) / 100000).toFixed(2)}L</strong>.
+                  </p>
+                  <p className="mb-8 leading-relaxed">
+                    Our models indicate a 14% spike in churn probability within the <em className="text-slate-900 dark:text-white font-medium italic">Month-to-Month</em> contract segment, primarily driven by recent support ticket volume and a drop in platform login frequency.
+                  </p>
+
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 mt-8">Key Risk Hotspots</h2>
+                  <ul className="list-disc pl-5 mb-8 space-y-2">
+                    <li><strong className="text-slate-900 dark:text-white font-semibold">Fiber Optic Enterprise Tier:</strong> 42 accounts show degraded network telemetry and are at critical risk (Average SHAP impact: +0.28).</li>
+                    <li><strong className="text-slate-900 dark:text-white font-semibold">Month-to-Month Contracts:</strong> Accounts without annual lock-in represent 65% of the total revenue exposure.</li>
+                    <li><strong className="text-slate-900 dark:text-white font-semibold">Support Resolution Time:</strong> Accounts with average resolution times &gt; 24h have a 3x higher predicted churn probability.</li>
+                  </ul>
+
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 mt-8">Recommended Automations (Next 7 Days)</h2>
+                  <ol className="list-decimal pl-5 mb-8 space-y-3">
+                    <li>
+                      <strong className="text-slate-900 dark:text-white font-semibold">Execute Bulk Action:</strong> Run the "Fiber Optic SLA Assurance" GenAI campaign for the 42 critical accounts.
+                    </li>
+                    <li>
+                      <strong className="text-slate-900 dark:text-white font-semibold">Workflow Trigger:</strong> Enable the auto-assignment workflow for Month-to-Month accounts crossing the 75% risk threshold.
+                    </li>
+                    <li>
+                      <strong className="text-slate-900 dark:text-white font-semibold">Account Expansion:</strong> There are 1,204 accounts classified as "Low Risk". PredictIQ suggests offering a 10% discount on Annual upgrades to lock in ₹4.2L of MRR.
+                    </li>
+                  </ol>
+                </div>
+              )}
+            </div>
+
+            {reportReady && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1e293b] flex justify-end gap-3">
+                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                  <Printer size={16} /> Print
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+                  <Download size={16} /> Download PDF
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="hover:border-blue-200 dark:hover:border-blue-900/50 transition-colors">
@@ -288,6 +387,9 @@ function ExecutiveOverview({ summary, customers, isDark, onViewDatabase }) {
 function CustomerExplorer({ customers, onSelectCustomer, isCompactView }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
+  const [selectedCustomers, setSelectedCustomers] = useState([]);
+  const [isCampaignRunning, setIsCampaignRunning] = useState(false);
+  const [campaignProgress, setCampaignProgress] = useState(0);
 
   const filtered = customers.filter(c => {
     const matchesSearch = c.customerID.toLowerCase().includes(searchTerm.toLowerCase());
@@ -297,6 +399,42 @@ function CustomerExplorer({ customers, onSelectCustomer, isCompactView }) {
     if (filterType === 'MTM') return c.Contract === 'Month-to-month';
     return true;
   });
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedCustomers(filtered.slice(0, 500).map(c => c.customerID));
+    } else {
+      setSelectedCustomers([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    if (selectedCustomers.includes(id)) {
+      setSelectedCustomers(selectedCustomers.filter(c => c !== id));
+    } else {
+      setSelectedCustomers([...selectedCustomers, id]);
+    }
+  };
+
+  const handleRunCampaign = () => {
+    if (selectedCustomers.length === 0) return;
+    setIsCampaignRunning(true);
+    setCampaignProgress(0);
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsCampaignRunning(false);
+          setSelectedCustomers([]);
+        }, 2000);
+      }
+      setCampaignProgress(progress);
+    }, 400);
+  };
 
   // Sort critical accounts so the most urgent ones are at the top
   if (filterType === 'CRITICAL') {
@@ -311,6 +449,14 @@ function CustomerExplorer({ customers, onSelectCustomer, isCompactView }) {
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Showing {filtered.length} of {customers.length} accounts</p>
         </div>
         <div className="flex gap-4 items-center">
+            {selectedCustomers.length > 0 && (
+              <button 
+                onClick={handleRunCampaign}
+                className="animate-in fade-in zoom-in slide-in-from-right-4 duration-300 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition-all"
+              >
+                <Send size={16} /> Run Retention Campaign ({selectedCustomers.length})
+              </button>
+            )}
             <div className="hidden md:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                 <button onClick={() => setFilterType('ALL')} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${filterType === 'ALL' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>All</button>
                 <button onClick={() => setFilterType('CRITICAL')} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${filterType === 'CRITICAL' ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Critical Priority</button>
@@ -330,11 +476,50 @@ function CustomerExplorer({ customers, onSelectCustomer, isCompactView }) {
         </div>
       </div>
 
+      {isCampaignRunning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl p-8 max-w-md w-full border border-slate-200 dark:border-slate-700">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                {campaignProgress >= 100 ? <ShieldCheck size={32} /> : <Mail size={32} className="animate-pulse" />}
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                {campaignProgress >= 100 ? 'Campaign Dispatched!' : 'Running Retention Campaign'}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                {campaignProgress >= 100 ? `Successfully queued ${selectedCustomers.length} personalized emails.` : `Generating tailored offers for ${selectedCustomers.length} accounts using GenAI...`}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span>Progress</span>
+                <span>{Math.floor(campaignProgress)}%</span>
+              </div>
+              <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-600 transition-all duration-300 ease-out"
+                  style={{ width: `${campaignProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <tr>
+                <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium w-10`}>
+                  <input 
+                    type="checkbox" 
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 w-4 h-4 cursor-pointer"
+                    onChange={handleSelectAll}
+                    checked={filtered.length > 0 && selectedCustomers.length === Math.min(filtered.length, 500)}
+                  />
+                </th>
                 <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Account ID</th>
                 <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Priority Score</th>
                 <th className={`px-6 ${isCompactView ? 'py-2' : 'py-4'} font-medium`}>Risk Score</th>
@@ -346,7 +531,15 @@ function CustomerExplorer({ customers, onSelectCustomer, isCompactView }) {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
               {filtered.slice(0, 500).map(c => (
-                <tr key={c.customerID} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                <tr key={c.customerID} className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group ${selectedCustomers.includes(c.customerID) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                  <td className="px-6 py-4 w-10">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 w-4 h-4 cursor-pointer"
+                      checked={selectedCustomers.includes(c.customerID)}
+                      onChange={() => handleSelectOne(c.customerID)}
+                    />
+                  </td>
                   <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'} font-medium text-slate-900 dark:text-slate-200`}>{c.customerID}</td>
                   <td className={`px-6 ${isCompactView ? 'py-1.5' : 'py-4'}`}>
                      <span className={`px-2 py-1 rounded font-bold text-xs border ${
@@ -1114,6 +1307,17 @@ export default function App() {
             </button>
             
             <button 
+              onClick={() => navigate('simulator')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                currentView === 'simulator' 
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <TrendingUp size={16} /> Revenue Simulator
+            </button>
+            
+            <button 
               onClick={() => navigate('monitoring')}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                 currentView === 'monitoring' 
@@ -1122,6 +1326,28 @@ export default function App() {
               }`}
             >
               <Database size={16} /> Data Health
+            </button>
+
+            <button 
+              onClick={() => navigate('integrations')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                currentView === 'integrations' 
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <Link size={16} /> Integrations Hub
+            </button>
+
+            <button 
+              onClick={() => navigate('workflow')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                currentView === 'workflow' 
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <GitCommit size={16} /> AI Workflow Builder
             </button>
           </nav>
         </div>
@@ -1304,10 +1530,388 @@ export default function App() {
             {currentView === 'detail' && selectedCustomer && <CustomerDetail customerId={selectedCustomer} onBack={() => navigate('explorer')} />}
             {currentView === 'performance' && <ModelPerformance metrics={metrics} isDark={isDark} />}
             {currentView === 'monitoring' && <ModelMonitoring monitoring={monitoring} />}
+            {currentView === 'simulator' && <RevenueSimulator isDark={isDark} />}
+            {currentView === 'integrations' && <IntegrationsHub />}
+            {currentView === 'workflow' && <AIWorkflowBuilder />}
           </div>
         </main>
       </div>
       <CopilotChat />
+    </div>
+  );
+}
+
+function AIWorkflowBuilder() {
+  const [isRunning, setIsRunning] = useState(false);
+  const [activeNode, setActiveNode] = useState(0);
+
+  const runTest = () => {
+    if (isRunning) return;
+    setIsRunning(true);
+    setActiveNode(1);
+    
+    let current = 1;
+    const interval = setInterval(() => {
+      current++;
+      setActiveNode(current);
+      if (current > 4) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsRunning(false);
+          setActiveNode(0);
+        }, 3000);
+      }
+    }, 1500);
+  };
+
+  const getNodeClass = (nodeNum) => {
+    if (activeNode === nodeNum) return 'ring-4 ring-blue-500 shadow-blue-500/50 scale-105';
+    if (activeNode > nodeNum) return 'opacity-70 grayscale border-emerald-500 dark:border-emerald-500';
+    return '';
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">AI Action Automation</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Design zero-touch retention workflows triggered by machine learning predictions.</p>
+        </div>
+        <button 
+          onClick={runTest}
+          disabled={isRunning}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-md ${
+            isRunning 
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed' 
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          }`}
+        >
+          {isRunning ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />} 
+          {isRunning ? 'Executing Workflow...' : 'Test Workflow'}
+        </button>
+      </div>
+
+      <div className="relative p-12 bg-slate-50 dark:bg-[#111827]/50 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center min-h-[500px] overflow-hidden">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 bg-grid-slate-200 dark:bg-grid-slate-800/[0.2] bg-[length:32px_32px]"></div>
+
+        <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-2xl">
+          {/* Node 1: Trigger */}
+          <div className={`w-full bg-white dark:bg-slate-800 border-2 border-red-500 dark:border-red-900/50 rounded-xl p-6 shadow-xl transition-all duration-300 flex items-center gap-4 ${getNodeClass(1)}`}>
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
+              <Zap size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Trigger Event</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Risk Score &gt; 80%</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Fires when ML model predicts high churn probability.</p>
+            </div>
+            {activeNode === 1 && <div className="text-blue-500 animate-pulse"><RefreshCw size={20} className="animate-spin" /></div>}
+            {activeNode > 1 && <div className="text-emerald-500"><CheckCircle size={20} /></div>}
+          </div>
+
+          <div className={`h-8 w-1 bg-slate-300 dark:bg-slate-700 rounded-full transition-colors ${activeNode > 1 ? 'bg-emerald-500 dark:bg-emerald-500' : ''}`}></div>
+
+          {/* Node 2: Teams Alert */}
+          <div className={`w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-lg transition-all duration-300 flex items-center gap-4 ${getNodeClass(2)}`}>
+            <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <MessageSquare size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">Action</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Notify CS Manager</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Sends high-priority alert to Microsoft Teams channel.</p>
+            </div>
+            {activeNode === 2 && <div className="text-blue-500 animate-pulse"><RefreshCw size={20} className="animate-spin" /></div>}
+            {activeNode > 2 && <div className="text-emerald-500"><CheckCircle size={20} /></div>}
+          </div>
+
+          <div className={`h-8 w-1 bg-slate-300 dark:bg-slate-700 rounded-full transition-colors ${activeNode > 2 ? 'bg-emerald-500 dark:bg-emerald-500' : ''}`}></div>
+
+          {/* Node 3: GenAI Email */}
+          <div className={`w-full bg-white dark:bg-slate-800 border-2 border-purple-500 dark:border-purple-900/50 rounded-xl p-6 shadow-lg transition-all duration-300 flex items-center gap-4 ${getNodeClass(3)}`}>
+            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <Sparkles size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-purple-500 uppercase tracking-wider mb-1">GenAI Action</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Draft Retention Email</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Uses LLM to write personalized offer based on SHAP explanations.</p>
+            </div>
+            {activeNode === 3 && <div className="text-blue-500 animate-pulse"><RefreshCw size={20} className="animate-spin" /></div>}
+            {activeNode > 3 && <div className="text-emerald-500"><CheckCircle size={20} /></div>}
+          </div>
+
+          <div className={`h-8 w-1 bg-slate-300 dark:bg-slate-700 rounded-full transition-colors ${activeNode > 3 ? 'bg-emerald-500 dark:bg-emerald-500' : ''}`}></div>
+
+          {/* Node 4: Salesforce Log */}
+          <div className={`w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-lg transition-all duration-300 flex items-center gap-4 ${getNodeClass(4)}`}>
+            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <Cloud size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">System Action</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Log to Salesforce</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Creates a "Risk Mitigation" task on the CRM account record.</p>
+            </div>
+            {activeNode === 4 && <div className="text-blue-500 animate-pulse"><RefreshCw size={20} className="animate-spin" /></div>}
+            {activeNode > 4 && <div className="text-emerald-500"><CheckCircle size={20} /></div>}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IntegrationsHub() {
+  const integrations = [
+    {
+      id: 1,
+      name: 'Salesforce CRM',
+      description: 'Customer records, contract details, and revenue (MRR) data.',
+      status: 'Connected',
+      lastSync: '2 mins ago',
+      records: '1.2M',
+      icon: Cloud,
+      color: 'blue'
+    },
+    {
+      id: 2,
+      name: 'Zendesk Support',
+      description: 'Support tickets, resolution times, and customer sentiment.',
+      status: 'Connected',
+      lastSync: 'Just now',
+      records: '450K',
+      icon: Headphones,
+      color: 'emerald'
+    },
+    {
+      id: 3,
+      name: 'Snowflake Data Cloud',
+      description: 'Product telemetry, feature usage, and login frequency.',
+      status: 'Connected',
+      lastSync: '15 mins ago',
+      records: '8.4M',
+      icon: Server,
+      color: 'sky'
+    },
+    {
+      id: 4,
+      name: 'Microsoft Teams',
+      description: 'Automated alerts to Customer Success Managers.',
+      status: 'Active',
+      lastSync: 'Real-time',
+      records: 'Webhook',
+      icon: MessageSquare,
+      color: 'indigo'
+    }
+  ];
+
+  const getColorClasses = (color) => {
+    const map = {
+      blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+      emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+      sky: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800',
+      indigo: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+    };
+    return map[color];
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Integrations Hub</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage data ingestion pipelines and outbound alert webhooks.</p>
+        </div>
+        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-md">
+          <Link size={16} /> Add Integration
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {integrations.map(int => {
+          const Icon = int.icon;
+          return (
+            <Card key={int.id} className="relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shadow-sm ${getColorClasses(int.color)}`}>
+                    <Icon size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{int.name}</h3>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{int.status}</span>
+                    </div>
+                  </div>
+                </div>
+                <button className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <Settings size={18} />
+                </button>
+              </div>
+              
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">{int.description}</p>
+              
+              <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/60 pt-4">
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Last Sync</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-200 flex items-center gap-1">
+                    <RefreshCw size={12} className="text-slate-400" /> {int.lastSync}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Volume</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-200 flex items-center gap-1">
+                    <Layers size={12} className="text-slate-400" /> {int.records} Processed
+                  </p>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="bg-slate-50 dark:bg-slate-800/30 border-dashed border-2 border-slate-300 dark:border-slate-700">
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mb-4 shadow-sm">
+            <Webhook size={32} />
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Build a Custom Integration</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+            PredictIQ supports custom REST API webhooks to ingest data from proprietary internal systems or push alerts to custom endpoints.
+          </p>
+          <button className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
+            View API Documentation
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function RevenueSimulator({ isDark }) {
+  const [churnReduction, setChurnReduction] = useState(5);
+  const [upsellLift, setUpsellLift] = useState(2);
+  
+  const baseMRR = 1500000; // Mock base $1.5M MRR for simulation
+  
+  const generateData = () => {
+    let data = [];
+    let currentBase = baseMRR;
+    let currentOptimized = baseMRR;
+    
+    for(let i=0; i<=12; i++) {
+      data.push({
+        month: `Month ${i}`,
+        Baseline: Math.round(currentBase),
+        PredictIQ: Math.round(currentOptimized)
+      });
+      // 1.5% natural monthly churn
+      currentBase = currentBase * 0.985;
+      
+      // AI reduces that 1.5% churn by `churnReduction` %
+      const actualChurn = 0.015 * (1 - (churnReduction / 100));
+      // AI adds upsell
+      const actualUpsell = (upsellLift / 100) / 12; 
+      
+      currentOptimized = currentOptimized * (1 - actualChurn + actualUpsell);
+    }
+    return data;
+  };
+  
+  const chartData = generateData();
+  const baselineFinal = chartData[12].Baseline;
+  const optimizedFinal = chartData[12].PredictIQ;
+  
+  const mrrSaved = optimizedFinal - baselineFinal;
+  const arrSaved = mrrSaved * 12;
+  const roi = (arrSaved / 50000) * 100; // Assuming 50k software cost
+  
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">"What-If" Revenue Simulator</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Project the financial impact of deploying PredictIQ's automated retention models.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gradient-to-br from-emerald-500 to-teal-700 text-white border-none shadow-lg">
+          <div className="flex items-center gap-3 mb-2 opacity-90">
+            <DollarSign size={20} />
+            <h3 className="font-semibold text-sm">Projected ARR Saved</h3>
+          </div>
+          <p className="text-4xl font-extrabold mb-1">₹{(arrSaved / 100000).toFixed(2)}L</p>
+          <p className="text-xs opacity-75">Over 12 months based on parameters</p>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-blue-600 to-indigo-800 text-white border-none shadow-lg">
+          <div className="flex items-center gap-3 mb-2 opacity-90">
+            <TrendingUp size={20} />
+            <h3 className="font-semibold text-sm">12-Month ROI</h3>
+          </div>
+          <p className="text-4xl font-extrabold mb-1">{roi.toFixed(0)}%</p>
+          <p className="text-xs opacity-75">Estimated Return on PredictIQ Investment</p>
+        </Card>
+        
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <Settings size={18} className="text-slate-400" />
+            <h3 className="font-semibold text-slate-900 dark:text-white">Simulation Parameters</h3>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-2">
+                <span className="text-slate-500 dark:text-slate-400">Target Churn Reduction</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{churnReduction}%</span>
+              </div>
+              <input type="range" min="0" max="25" value={churnReduction} onChange={(e) => setChurnReduction(Number(e.target.value))} className="w-full accent-emerald-500" />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-2">
+                <span className="text-slate-500 dark:text-slate-400">GenAI Upsell Lift</span>
+                <span className="text-blue-600 dark:text-blue-400">{upsellLift}%</span>
+              </div>
+              <input type="range" min="0" max="15" value={upsellLift} onChange={(e) => setUpsellLift(Number(e.target.value))} className="w-full accent-blue-500" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-6">12-Month MRR Trajectory Forecast</h3>
+        <div className="h-[400px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorPredictIQ" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorBase" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#1e293b' : '#e2e8f0'} />
+              <XAxis dataKey="month" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} tickFormatter={val => `₹${(val/100000).toFixed(1)}L`} domain={['dataMin - 100000', 'dataMax + 100000']} />
+              <RechartsTooltip 
+                formatter={(value) => `₹${value.toLocaleString()}`}
+                contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e2e8f0', color: isDark ? '#fff' : '#000', borderRadius: '8px' }} 
+              />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+              <Area type="monotone" dataKey="Baseline" stroke="#94a3b8" strokeWidth={2} fillOpacity={1} fill="url(#colorBase)" />
+              <Area type="monotone" dataKey="PredictIQ" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorPredictIQ)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -1421,52 +2025,132 @@ function CopilotChat() {
     { sender: 'bot', text: "Hi Manthan, I'm PredictIQ Copilot. How can I help you analyze our customer data today?" }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const chatEndRef = useRef(null);
 
-  const handleQuery = (query, response) => {
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping, isOpen]);
+
+  const handleQuery = async (query, presetResponse) => {
+    if (isTyping || !query.trim()) return;
+    
     setMessages(prev => [...prev, { sender: 'user', text: query }]);
+    setInputValue('');
     setIsTyping(true);
-    setTimeout(() => {
-      setMessages(prev => [...prev, { sender: 'bot', text: response }]);
+    
+    if (presetResponse) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { sender: 'bot', text: presetResponse }]);
+        setIsTyping(false);
+      }, 1500);
+      return;
+    }
+
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": window.location.origin,
+          "X-Title": "PredictIQ Dashboard"
+        },
+        body: JSON.stringify({
+          model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+          messages: [
+            { role: "system", content: "You are PredictIQ Copilot, an AI assistant for a B2B SaaS Churn Prediction platform. Keep answers short (1-2 sentences max), professional, and helpful." },
+            ...messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
+            { role: "user", content: query }
+          ]
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error("OpenRouter API Error:", data.error);
+        setMessages(prev => [...prev, { sender: 'bot', text: `API Error: ${data.error.message || JSON.stringify(data.error)}` }]);
+      } else {
+        const botReply = data.choices && data.choices[0] ? data.choices[0].message.content : "I encountered an error analyzing that request.";
+        setMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
+      }
+    } catch (error) {
+      console.error(error);
+      setMessages(prev => [...prev, { sender: 'bot', text: `Network Error: ${error.message}` }]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleQuery(inputValue, null);
+    }
   };
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {isOpen && (
-        <div className="mb-4 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom-right">
-          <div className="bg-blue-600 p-3 text-white flex justify-between items-center">
-            <span className="font-bold flex items-center gap-2 text-sm"><Sparkles size={14} /> PredictIQ Copilot</span>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-blue-700 p-1 rounded transition-colors cursor-pointer"><ChevronRight size={14} className="rotate-90" /></button>
+        <div className="mb-4 w-[350px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom-right flex flex-col h-[500px]">
+          <div className="bg-blue-600 p-3 text-white flex justify-between items-center shadow-md z-10">
+            <span className="font-bold flex items-center gap-2 text-sm"><Sparkles size={16} /> PredictIQ Copilot</span>
+            <button onClick={() => setIsOpen(false)} className="hover:bg-blue-700 p-1.5 rounded transition-colors cursor-pointer"><X size={16} /></button>
           </div>
-          <div className="h-64 p-4 overflow-y-auto flex flex-col gap-3 bg-slate-50 dark:bg-slate-900/50 text-sm">
+          
+          <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3 bg-slate-50 dark:bg-slate-900/50 text-sm">
             {messages.map((m, i) => (
-              <div key={i} className={`max-w-[85%] p-2.5 rounded-lg text-[13px] leading-relaxed shadow-sm ${m.sender === 'user' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 self-end rounded-br-none border border-blue-200 dark:border-blue-800/30' : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 self-start border border-slate-200 dark:border-slate-600 rounded-bl-none'}`}>
+              <div key={i} className={`max-w-[85%] p-3 rounded-xl text-[13px] leading-relaxed shadow-sm ${m.sender === 'user' ? 'bg-blue-600 text-white self-end rounded-br-sm' : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 self-start border border-slate-200 dark:border-slate-600 rounded-bl-sm'}`}>
                 {m.text}
               </div>
             ))}
             {isTyping && (
-              <div className="bg-white dark:bg-slate-700 text-slate-500 self-start p-2.5 border border-slate-200 dark:border-slate-600 rounded-lg rounded-bl-none shadow-sm flex gap-1 items-center h-9">
-                <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-                <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-                <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+              <div className="bg-white dark:bg-slate-700 text-slate-500 self-start p-3 border border-slate-200 dark:border-slate-600 rounded-xl rounded-bl-sm shadow-sm flex gap-1.5 items-center h-10">
+                <span className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                <span className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                <span className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
               </div>
             )}
+            <div ref={chatEndRef} />
           </div>
-          <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 font-bold uppercase tracking-wider">Suggested Queries</p>
-            <div className="flex flex-col gap-1.5">
+
+          <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col gap-3">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               <button 
-                onClick={() => handleQuery("Which segment is highest risk?", "Based on the latest SHAP analysis, the Month-to-month segment using Fiber Optic internet has a 3x higher churn risk than the baseline.")}
-                className="text-xs text-left p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors cursor-pointer border border-slate-200 dark:border-slate-600"
+                disabled={isTyping}
+                onClick={() => handleQuery("Highest risk segment?", "Based on the latest SHAP analysis, the Month-to-month segment using Fiber Optic internet has a 3x higher churn risk than the baseline.")}
+                className="whitespace-nowrap text-[11px] font-medium p-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-full transition-colors cursor-pointer border border-slate-200 dark:border-slate-600 disabled:opacity-50"
               >
-                Which segment is highest risk?
+                Highest risk segment?
               </button>
               <button 
-                onClick={() => handleQuery("Are there data anomalies?", "I have monitored the incoming Salesforce data pipeline. There is no significant data drift, and data health is at 98%.")}
-                className="text-xs text-left p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors cursor-pointer border border-slate-200 dark:border-slate-600"
+                disabled={isTyping}
+                onClick={() => handleQuery("Data anomalies?", "I have monitored the incoming Salesforce data pipeline. There is no significant data drift, and data health is at 98%.")}
+                className="whitespace-nowrap text-[11px] font-medium p-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-full transition-colors cursor-pointer border border-slate-200 dark:border-slate-600 disabled:opacity-50"
               >
-                Are there data anomalies?
+                Data anomalies?
+              </button>
+            </div>
+            
+            <div className="relative flex items-center">
+              <input 
+                type="text" 
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask PredictIQ..."
+                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-sm rounded-lg pl-3 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button 
+                disabled={isTyping || !inputValue.trim()}
+                onClick={() => handleQuery(inputValue, null)}
+                className="absolute right-1 text-blue-600 dark:text-blue-400 p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-md transition-colors disabled:opacity-50"
+              >
+                <Send size={16} />
               </button>
             </div>
           </div>
@@ -1475,9 +2159,9 @@ function CopilotChat() {
       
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 cursor-pointer ring-4 ring-blue-600/20 dark:ring-blue-500/20"
+        className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 cursor-pointer ring-4 ring-blue-600/20 dark:ring-blue-500/20 ${isOpen ? 'bg-slate-800 text-white dark:bg-slate-700' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
       >
-        <MessageSquare size={24} />
+        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
       </button>
     </div>
   );
